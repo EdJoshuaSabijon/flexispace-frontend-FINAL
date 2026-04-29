@@ -11,6 +11,7 @@ import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
+import EditProfile from './pages/EditProfile';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
@@ -56,6 +57,7 @@ function AppContent() {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+        <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/products" element={<ProtectedRoute requireAdmin><AdminProducts /></ProtectedRoute>} />

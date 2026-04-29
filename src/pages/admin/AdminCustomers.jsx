@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import AdminLayout from '../../components/AdminLayout';
-import { Mail, Phone, MapPin, Users, ShoppingBag } from 'lucide-react';
+import { Mail, Phone, MapPin, Users, ShoppingBag, Trash2, X, CheckCircle } from 'lucide-react';
 
 export default function AdminCustomers() {
   const [customers, setCustomers] = useState([]);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [messageType, setMessageType] = useState('success');
 
   useEffect(() => {
     fetchCustomers();
@@ -17,6 +20,22 @@ export default function AdminCustomers() {
       setCustomers(response.data);
     } catch (error) {
       console.error('Failed to fetch customers:', error.response?.data || error.message);
+    }
+  };
+
+  const deleteCustomer = async (customerId) => {
+    try {
+      await api.delete(`/admin/customers/${customerId}`);
+      setCustomers(customers.filter(c => c.id !== customerId));
+      setMessage('Customer deleted successfully');
+      setMessageType('success');
+      setDeleteConfirm(null);
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Failed to delete customer');
+      setMessageType('error');
+      setDeleteConfirm(null);
+      setTimeout(() => setMessage(null), 3000);
     }
   };
 
@@ -41,6 +60,19 @@ export default function AdminCustomers() {
         </div>
       </div>
 
+      {/* Success/Error Message */}
+      {message && (
+        <div className={`mb-4 p-4 rounded-xl flex items-center gap-3 ${
+          messageType === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          {messageType === 'success' ? <CheckCircle size={20} /> : <X size={20} />}
+          <span className="font-medium">{message}</span>
+          <button onClick={() => setMessage(null)} className="ml-auto text-gray-400 hover:text-gray-600">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Customers Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -52,12 +84,13 @@ export default function AdminCustomers() {
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Joined</th>
               <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Orders</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email Verified</th>
+              <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
             {customers.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-12 text-center">
+                <td colSpan="7" className="px-6 py-12 text-center">
                   <div className="bg-gray-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                     <Users className="text-gray-400" size={28} />
                   </div>
@@ -121,12 +154,59 @@ export default function AdminCustomers() {
                       </span>
                     )}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <button
+                      onClick={() => setDeleteConfirm(customer)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition"
+                      title="Delete customer"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="text-red-600" size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Remove Customer?</h3>
+                <p className="text-sm text-gray-500">Are you sure you want to remove this customer?</p>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">{deleteConfirm.first_name} {deleteConfirm.last_name}</span>
+                <br />
+                <span className="text-gray-500">{deleteConfirm.email}</span>
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteCustomer(deleteConfirm.id)}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </AdminLayout>
   );
