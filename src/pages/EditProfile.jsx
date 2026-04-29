@@ -67,11 +67,15 @@ export default function EditProfile() {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
+    console.log('Profile form submitted');
+    console.log('Form data:', formData);
     setLoading(true);
     setErrors({});
 
     try {
+      console.log('Sending PUT request to /api/profile');
       const response = await api.put('/profile', formData);
+      console.log('Profile update response:', response.data);
       
       // Update user in context and localStorage
       const updatedUser = { ...user, ...response.data.user };
@@ -80,6 +84,8 @@ export default function EditProfile() {
       
       showMessage('Profile updated successfully!');
     } catch (error) {
+      console.error('Profile update error:', error);
+      console.error('Error response:', error.response?.data);
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
         showMessage('Please fix the errors below.', 'error');
@@ -93,6 +99,7 @@ export default function EditProfile() {
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
+    console.log('Password form submitted');
     setLoading(true);
     setErrors({});
 
@@ -105,11 +112,13 @@ export default function EditProfile() {
     }
 
     try {
+      console.log('Sending password update request');
       await api.put('/profile', {
         current_password: passwordData.current_password,
         password: passwordData.password,
         password_confirmation: passwordData.password_confirmation,
       });
+      console.log('Password update successful');
       
       // Clear password fields
       setPasswordData({
@@ -120,6 +129,8 @@ export default function EditProfile() {
       
       showMessage('Password changed successfully!');
     } catch (error) {
+      console.error('Password update error:', error);
+      console.error('Error response:', error.response?.data);
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
         showMessage('Please fix the errors below.', 'error');
@@ -132,10 +143,13 @@ export default function EditProfile() {
   };
 
   const handleDeleteAccount = async () => {
+    console.log('Delete account initiated');
     setLoading(true);
     
     try {
+      console.log('Sending DELETE request to /api/profile');
       await api.delete('/profile');
+      console.log('Account deleted successfully');
       
       // Clear localStorage and redirect
       localStorage.removeItem('token');
@@ -144,6 +158,8 @@ export default function EditProfile() {
       
       navigate('/login');
     } catch (error) {
+      console.error('Delete account error:', error);
+      console.error('Error response:', error.response?.data);
       showMessage(error.response?.data?.message || 'Failed to delete account', 'error');
       setShowDeleteConfirm(false);
     } finally {

@@ -22,18 +22,27 @@ export default function Cart() {
   }, []);
 
   const updateQuantity = (productId, newQuantity) => {
-    if (newQuantity < 1) return;
+    console.log('Updating quantity:', productId, 'to', newQuantity);
+    if (newQuantity < 1) {
+      // Remove item if quantity would go below 1
+      console.log('Quantity < 1, removing item');
+      removeItem(productId);
+      return;
+    }
     const updatedCart = cart.map(item =>
       item.product_id === productId ? { ...item, quantity: newQuantity } : item
     );
     setCart(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
+    console.log('Cart updated, new total items:', updatedCart.reduce((sum, item) => sum + item.quantity, 0));
   };
 
   const removeItem = (productId) => {
+    console.log('Removing item:', productId);
     const updatedCart = cart.filter(item => item.product_id !== productId);
     setCart(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
+    console.log('Item removed, cart now has', updatedCart.length, 'items');
   };
 
   const formatPrice = (price) => {
@@ -135,7 +144,7 @@ export default function Cart() {
                   <button
                     onClick={() => updateQuantity(productId, quantity - 1)}
                     className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition"
-                    disabled={quantity <= 1}
+                    title={quantity === 1 ? "Remove item" : "Decrease quantity"}
                   >
                     <Minus size={16} />
                   </button>

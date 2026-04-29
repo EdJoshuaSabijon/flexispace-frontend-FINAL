@@ -15,11 +15,17 @@ export default function AdminCustomers() {
 
   const fetchCustomers = async () => {
     try {
+      const token = localStorage.getItem('token');
+      console.log('Fetching customers with token:', token ? 'Token exists' : 'NO TOKEN');
+      
       const response = await api.get('/admin/customers');
       console.log('Admin customers API response:', response.data);
+      console.log('Number of customers:', response.data?.length || 0);
       setCustomers(response.data);
     } catch (error) {
       console.error('Failed to fetch customers:', error.response?.data || error.message);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
     }
   };
 
