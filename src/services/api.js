@@ -6,7 +6,9 @@ const api = axios.create({
   baseURL: `${API_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  withCredentials: false, // Important: don't send cookies for stateless API
 });
 
 // Add token to requests
