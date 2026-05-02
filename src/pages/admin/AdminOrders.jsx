@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Eye, Package, Download } from 'lucide-react';
+import { Eye, Package, Download, ShieldX } from 'lucide-react';
 import api from '../../services/api';
 import AdminLayout from '../../components/AdminLayout';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectOrderId, setRejectOrderId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
     fetchOrders();
@@ -59,6 +62,8 @@ export default function AdminOrders() {
       'Processing': 'bg-blue-100 text-blue-700 border-blue-300',
       'Shipped': 'bg-violet-100 text-violet-700 border-violet-300',
       'Delivered': 'bg-emerald-100 text-emerald-700 border-emerald-300',
+      'Cancelled': 'bg-orange-100 text-orange-700 border-orange-300',
+      'Rejected': 'bg-red-100 text-red-700 border-red-300',
     };
     return colors[status] || 'bg-gray-100 text-gray-700 border-gray-300';
   };
@@ -129,6 +134,8 @@ export default function AdminOrders() {
                       <option value="Processing" className="bg-white text-gray-900">Processing</option>
                       <option value="Shipped" className="bg-white text-gray-900">Shipped</option>
                       <option value="Delivered" className="bg-white text-gray-900">Delivered</option>
+                      <option value="Cancelled" className="bg-white text-gray-900">Cancelled</option>
+                      <option value="Rejected" className="bg-white text-gray-900">Rejected</option>
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -273,12 +280,41 @@ export default function AdminOrders() {
                   </h3>
                   <div className="rounded-xl overflow-hidden border border-gray-200">
                     <img 
-                      src={`http://localhost:8000/storage/${selectedOrder.proof_of_payment}`} 
+                      src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/storage/${selectedOrder.proof_of_payment}`} 
                       alt="Proof of Payment" 
                       className="w-full h-auto max-h-96 object-contain bg-white"
                     />
                   </div>
                 </div>
+              )}
+
+              {/* Cancel/Rejection Info */}
+              {selectedOrder.cancel_reason && (
+                <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+                  <h3 className="font-semibold text-orange-700 mb-1">🚫 Cancellation Reason</h3>
+                  <p className="text-sm text-orange-600">{selectedOrder.cancel_reason}</p>
+                </div>
+              )}
+              {selectedOrder.rejection_reason && (
+                <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                  <h3 className="font-semibold text-red-700 mb-1">❌ Rejection Reason</h3>
+                  <p className="text-sm text-red-600">{selectedOrder.rejection_reason}</p>
+                </div>
+              )}
+
+              {/* Reject Button for GCash orders */}
+              {selectedOrder.payment_method === 'gcash' && selectedOrder.status === 'Pending' && (
+                <button
+                  onClick={() => {
+                    setRejectOrderId(selectedOrder.id);
+                    setSelectedOrder(null);
+                    setShowRejectModal(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-3 rounded-xl font-semibold hover:bg-red-600 transition"
+                >
+                  <ShieldX size={18} />
+                  Reject Order (Unreliable Proof)
+                </button>
               )}
 
               {/* Close Button */}
@@ -293,6 +329,44 @@ export default function AdminOrders() {
         </div>
       )}
     </div>
+
+    {/* Reject Order Modal */}
+    {showRejectModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+          <h2 className="text-xl font-bold text-red-600 mb-2 flex items-center gap-2">
+            <ShieldX size={22} /> Reject Order #{rejectOrderId}
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">This will reject the order due to unreliable proof of payment.</p>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!rejectionReason.trim()) { alert('Please provide a reason.'); return; }
+            try {
+              await api.patch(`/admin/orders/${rejectOrderId}/reject`, { rejection_reason: rejectionReason });
+              alert('Order rejected successfully.');
+              setShowRejectModal(false);
+              setRejectionReason('');
+              fetchOrders();
+            } catch (error) {
+              alert(error.response?.data?.message || 'Failed to reject order.');
+            }
+          }}>
+            <textarea
+              required
+              rows="3"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Explain why the proof of payment is being rejected..."
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 resize-none mb-4"
+            />
+            <div className="flex gap-3">
+              <button type="button" onClick={() => { setShowRejectModal(false); setRejectionReason(''); }} className="flex-1 px-4 py-3 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">Cancel</button>
+              <button type="submit" className="flex-1 px-4 py-3 rounded-xl font-semibold text-white bg-red-500 hover:bg-red-600 transition">Reject Order</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
     </AdminLayout>
   );
 }

@@ -42,13 +42,13 @@ export default function Register() {
       const response = await api.post('/register', formData);
       console.log('Registration response:', response.data);
       
-      // If registration successful and token is returned, log the user in
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
+      // If registration successful, store token and log user in
+      if (response.data.access_token) {
+        localStorage.setItem('token', response.data.access_token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       
-      // Redirect to dashboard (since user is auto-verified)
+      // Redirect to dashboard (user is auto-verified)
       navigate('/dashboard');
     } catch (error) {
       console.error('Registration error:', error);

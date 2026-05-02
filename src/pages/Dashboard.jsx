@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { Package, Clock, CheckCircle, User, Settings, Bell, MapPin, Truck, Home, LogOut, Phone, CreditCard, ChevronRight, Activity, CornerUpLeft, RefreshCcw } from 'lucide-react';
+import { Package, Clock, CheckCircle, User, Settings, Bell, MapPin, Truck, Home, LogOut, Phone, CreditCard, ChevronRight, Activity, CornerUpLeft, RefreshCcw, XCircle, Camera, Ban } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -48,6 +48,24 @@ export default function Dashboard() {
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [returnOrderId, setReturnOrderId] = useState(null);
   const [returnReason, setReturnReason] = useState('');
+  const [defectImage, setDefectImage] = useState(null);
+  const [defectPreview, setDefectPreview] = useState(null);
+
+  // Cancel state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelOrderId, setCancelOrderId] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+
+  const cancelReasons = [
+    'Changed my mind',
+    'Found a better price elsewhere',
+    'Ordered by mistake',
+    'Delivery time is too long',
+    'Want to change shipping address',
+    'Want to modify order items',
+    'Financial reasons',
+    'Other',
+  ];
 
   useEffect(() => {
     if (user) {
@@ -127,14 +145,49 @@ export default function Dashboard() {
 
   const handleReturnSubmit = async (e) => {
     e.preventDefault();
+    if (!defectImage) {
+      alert('Please upload a photo of the defect.');
+      return;
+    }
     try {
-      await api.post('/returns', { order_id: returnOrderId, reason: returnReason });
+      const formData = new FormData();
+      formData.append('order_id', returnOrderId);
+      formData.append('reason', returnReason);
+      formData.append('defect_image', defectImage);
+      await api.post('/returns', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       alert('Return request submitted!');
       setShowReturnModal(false);
       setReturnReason('');
+      setDefectImage(null);
+      setDefectPreview(null);
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to submit return request');
+    }
+  };
+
+  const handleCancelOrder = async (e) => {
+    e.preventDefault();
+    if (!cancelReason) {
+      alert('Please select a reason for cancellation.');
+      return;
+    }
+    try {
+      await api.patch(`/orders/${cancelOrderId}/cancel`, { cancel_reason: cancelReason });
+      alert('Order cancelled successfully.');
+      setShowCancelModal(false);
+      setCancelReason('');
+      fetchData();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to cancel order');
+    }
+  };
+
+  const handleDefectImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setDefectImage(file);
+      setDefectPreview(URL.createObjectURL(file));
     }
   };
 
@@ -374,6 +427,19 @@ export default function Dashboard() {
                             </div>
                           </div>
 
+                          {/* Cancel Button - only for Pending/Processing */}
+                          {['Pending', 'Processing'].includes(order.status) && (
+                            <div className="mt-6 flex justify-end gap-3">
+                              <button 
+                                onClick={() => { setCancelOrderId(order.id); setShowCancelModal(true); }}
+                                className="text-sm font-bold text-orange-500 hover:text-orange-600 flex items-center gap-1 hover:bg-orange-50 px-4 py-2 rounded-xl transition-colors"
+                              >
+                                <Ban size={16} /> Cancel Order
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Return Button - only for Delivered */}
                           {order.status === 'Delivered' && !returns.find(r => r.order_id === order.id) && (
                             <div className="mt-6 flex justify-end">
                               <button 
@@ -382,6 +448,20 @@ export default function Dashboard() {
                               >
                                 <CornerUpLeft size={16} /> Request Return
                               </button>
+                            </div>
+                          )}
+
+                          {/* Cancelled/Rejected badge */}
+                          {order.status === 'Cancelled' && (
+                            <div className="mt-4 bg-orange-50 border border-orange-200 rounded-xl p-4">
+                              <p className="text-sm font-bold text-orange-700 flex items-center gap-2"><XCircle size={16}/> Order Cancelled</p>
+                              {order.cancel_reason && <p className="text-sm text-orange-600 mt-1">Reason: {order.cancel_reason}</p>}
+                            </div>
+                          )}
+                          {order.status === 'Rejected' && (
+                            <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4">
+                              <p className="text-sm font-bold text-red-700 flex items-center gap-2"><XCircle size={16}/> Order Rejected</p>
+                              {order.rejection_reason && <p className="text-sm text-red-600 mt-1">Reason: {order.rejection_reason}</p>}
                             </div>
                           )}
                         </div>
@@ -483,27 +563,71 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Return Modal */}
+      {/* Cancel Order Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <h3 className="text-2xl font-bold text-slate-800 mb-2 flex items-center gap-2"><Ban className="text-orange-500"/> Cancel Order</h3>
+            <p className="text-slate-500 mb-6">Order #{cancelOrderId}</p>
+            <form onSubmit={handleCancelOrder}>
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-slate-700 mb-3">Select a reason for cancellation</label>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {cancelReasons.map((reason) => (
+                    <label key={reason} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      cancelReason === reason ? 'border-orange-400 bg-orange-50' : 'border-slate-200 hover:border-orange-200 hover:bg-orange-50/50'
+                    }`}>
+                      <input type="radio" name="cancelReason" value={reason} checked={cancelReason === reason} onChange={(e) => setCancelReason(e.target.value)} className="accent-orange-500" />
+                      <span className="text-sm text-slate-700">{reason}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => { setShowCancelModal(false); setCancelReason(''); }} className="flex-1 px-4 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Back</button>
+                <button type="submit" className="flex-1 px-4 py-3 rounded-xl font-bold text-white bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/30 transition-colors">Confirm Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Return Modal with Defect Image */}
       {showReturnModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-bold text-slate-800 mb-2">Request Return</h3>
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <h3 className="text-2xl font-bold text-slate-800 mb-2 flex items-center gap-2"><CornerUpLeft className="text-red-500"/> Request Return</h3>
             <p className="text-slate-500 mb-6">Order #{returnOrderId}</p>
             <form onSubmit={handleReturnSubmit}>
-              <div className="mb-6">
+              <div className="mb-4">
                 <label className="block text-sm font-bold text-slate-700 mb-2">Reason for return</label>
                 <textarea 
                   required 
-                  rows="4" 
+                  rows="3" 
                   value={returnReason}
                   onChange={e => setReturnReason(e.target.value)}
-                  placeholder="Please explain why you want to return this item..."
+                  placeholder="Describe the defect or issue with the product..."
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-violet-500 resize-none"
                 />
               </div>
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Camera size={16}/> Upload Photo of Defect <span className="text-red-500">*</span></label>
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-violet-400 transition-colors cursor-pointer" onClick={() => document.getElementById('defectImageInput').click()}>
+                  {defectPreview ? (
+                    <img src={defectPreview} alt="Defect preview" className="max-h-48 mx-auto rounded-lg" />
+                  ) : (
+                    <div className="py-6">
+                      <Camera size={32} className="mx-auto text-slate-400 mb-2" />
+                      <p className="text-sm text-slate-500">Click to upload a photo of the defect</p>
+                      <p className="text-xs text-slate-400 mt-1">JPG, PNG up to 5MB</p>
+                    </div>
+                  )}
+                  <input id="defectImageInput" type="file" accept="image/*" className="hidden" onChange={handleDefectImageChange} />
+                </div>
+              </div>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setShowReturnModal(false)} className="flex-1 px-4 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Cancel</button>
-                <button type="submit" className="flex-1 px-4 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 transition-colors">Submit</button>
+                <button type="button" onClick={() => { setShowReturnModal(false); setDefectImage(null); setDefectPreview(null); setReturnReason(''); }} className="flex-1 px-4 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Cancel</button>
+                <button type="submit" className="flex-1 px-4 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 transition-colors">Submit Return</button>
               </div>
             </form>
           </div>
