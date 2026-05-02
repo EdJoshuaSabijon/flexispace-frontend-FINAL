@@ -17,6 +17,10 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminCustomers from './pages/admin/AdminCustomers';
+import AdminLogistics from './pages/admin/AdminLogistics';
+import AdminGcash from './pages/admin/AdminGcash';
+import AdminReturns from './pages/admin/AdminReturns';
+import AdminFinancial from './pages/admin/AdminFinancial';
 
 function ProtectedRoute({ children, requireAdmin = false }) {
   const { user, loading } = useAuth();
@@ -63,6 +67,10 @@ function AppContent() {
         <Route path="/admin/products" element={<ProtectedRoute requireAdmin><AdminProducts /></ProtectedRoute>} />
         <Route path="/admin/orders" element={<ProtectedRoute requireAdmin><AdminOrders /></ProtectedRoute>} />
         <Route path="/admin/customers" element={<ProtectedRoute requireAdmin><AdminCustomers /></ProtectedRoute>} />
+        <Route path="/admin/logistics" element={<ProtectedRoute requireAdmin><AdminLogistics /></ProtectedRoute>} />
+        <Route path="/admin/gcash" element={<ProtectedRoute requireAdmin><AdminGcash /></ProtectedRoute>} />
+        <Route path="/admin/returns" element={<ProtectedRoute requireAdmin><AdminReturns /></ProtectedRoute>} />
+        <Route path="/admin/financial" element={<ProtectedRoute requireAdmin><AdminFinancial /></ProtectedRoute>} />
       </Routes>
     </div>
   );

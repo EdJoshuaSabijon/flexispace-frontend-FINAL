@@ -3,7 +3,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
 import { 
-  ShoppingBag, Users, DollarSign, Package, Plus, ChevronRight, 
+  ShoppingBag, Users, Coins, Package, Plus, ChevronRight, 
   LayoutDashboard, ClipboardList, LogOut, CheckCircle, Clock, Truck
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -44,12 +44,14 @@ export default function AdminDashboard() {
   const fetchStats = async () => {
     try {
       const [ordersRes, productsRes, customersRes] = await Promise.all([
-        api.get('/orders'),
+        api.get('/admin/orders'),
         api.get('/products'),
         api.get('/admin/customers'),
       ]);
 
-      const totalRevenue = ordersRes.data.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+      const totalRevenue = ordersRes.data
+        .filter(order => order.status === 'Delivered')
+        .reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
 
       setStats({
         totalOrders: ordersRes.data.length,
@@ -64,7 +66,7 @@ export default function AdminDashboard() {
 
   const fetchRecentOrders = async () => {
     try {
-      const response = await api.get('/orders');
+      const response = await api.get('/admin/orders');
       // Get last 5 orders, sorted by date
       const sorted = response.data
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -142,7 +144,7 @@ export default function AdminDashboard() {
                 <p className="text-3xl font-bold text-slate-900">{formatPrice(stats.totalRevenue)}</p>
               </div>
               <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <DollarSign className="text-emerald-600" size={24} />
+                <Coins className="text-emerald-600" size={24} />
               </div>
             </div>
           </div>

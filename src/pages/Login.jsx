@@ -9,6 +9,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const verified = searchParams.get('verified');
+  const urlError = searchParams.get('error');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,6 +38,16 @@ export default function Login() {
         {verified === '1' && (
           <div className="bg-green-100 text-green-700 px-4 py-3 rounded-lg mb-4">
             ✅ Email verified successfully! You can now log in.
+          </div>
+        )}
+        {verified === 'already' && (
+          <div className="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg mb-4">
+            ℹ️ Your email is already verified. You can log in.
+          </div>
+        )}
+        {urlError === 'invalid-link' && (
+          <div className="bg-red-100 text-red-700 px-4 py-3 rounded-lg mb-4">
+            ❌ Invalid verification link. Please request a new verification email.
           </div>
         )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

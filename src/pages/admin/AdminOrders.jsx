@@ -252,12 +252,34 @@ export default function AdminOrders() {
                   </span>
                 </div>
                 <div className="flex justify-between items-center mt-2">
+                  <span className="text-gray-500">Payment Method:</span>
+                  <span className="font-bold text-gray-800 uppercase">
+                    {selectedOrder.payment_method?.toUpperCase() || 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mt-2">
                   <span className="text-gray-500">Total Amount:</span>
                   <span className="text-xl font-bold text-purple-700">
                     ₱{Number(selectedOrder.total_amount || selectedOrder.total || 0).toLocaleString('en-PH')}
                   </span>
                 </div>
               </div>
+
+              {/* Proof of Payment */}
+              {selectedOrder.payment_method === 'gcash' && selectedOrder.proof_of_payment && (
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    🧾 Proof of Payment
+                  </h3>
+                  <div className="rounded-xl overflow-hidden border border-gray-200">
+                    <img 
+                      src={`http://localhost:8000/storage/${selectedOrder.proof_of_payment}`} 
+                      alt="Proof of Payment" 
+                      className="w-full h-auto max-h-96 object-contain bg-white"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Close Button */}
               <button
