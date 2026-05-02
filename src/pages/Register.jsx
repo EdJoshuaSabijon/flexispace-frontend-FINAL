@@ -48,8 +48,8 @@ export default function Register() {
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       
-      // Redirect to verify email page
-      navigate('/verify-email', { state: { email: formData.email } });
+      // Redirect to dashboard (since user is auto-verified)
+      navigate('/dashboard');
     } catch (error) {
       console.error('Registration error:', error);
       console.error('Error response:', error.response?.data);
