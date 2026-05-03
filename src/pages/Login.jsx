@@ -1,24 +1,22 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const verified = searchParams.get('verified');
-  const urlError = searchParams.get('error');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     const result = await login(formData.email, formData.password);
+    setLoading(false);
     if (result.success) {
-      navigate('/');
-    } else if (result.email_not_verified) {
-      navigate('/verify-email', { state: { email: formData.email } });
+      navigate('/dashboard');
     } else {
       setError(result.message);
     }
@@ -33,21 +31,6 @@ export default function Login() {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             {error}
-          </div>
-        )}
-        {verified === '1' && (
-          <div className="bg-green-100 text-green-700 px-4 py-3 rounded-lg mb-4">
-            ✅ Email verified successfully! You can now log in.
-          </div>
-        )}
-        {verified === 'already' && (
-          <div className="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg mb-4">
-            ℹ️ Your email is already verified. You can log in.
-          </div>
-        )}
-        {urlError === 'invalid-link' && (
-          <div className="bg-red-100 text-red-700 px-4 py-3 rounded-lg mb-4">
-            ❌ Invalid verification link. Please request a new verification email.
           </div>
         )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -75,9 +58,10 @@ export default function Login() {
           </div>
           <button
             type="submit"
-            className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700"
+            disabled={loading}
+            className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50"
           >
-            Sign in
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
         <div className="text-center">

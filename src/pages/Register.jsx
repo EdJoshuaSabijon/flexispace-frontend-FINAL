@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -22,47 +21,32 @@ export default function Register() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
     if (generalError) setGeneralError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Register form submitted');
-    console.log('Form data:', formData);
     setErrors({});
     setGeneralError('');
     setLoading(true);
 
-    try {
-      console.log('Sending registration request...');
-      const response = await api.post('/register', formData);
-      console.log('Registration response:', response.data);
-      
-      // If registration successful, store token and log user in
-      if (response.data.access_token) {
-        localStorage.setItem('token', response.data.access_token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      }
-      
-      // Redirect to dashboard (user is auto-verified)
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Registration error:', error);
-      console.error('Error response:', error.response?.data);
-      
-      if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors);
-      } else if (error.response?.data?.message) {
-        setGeneralError(error.response.data.message);
-      } else {
-        setGeneralError('Registration failed. Please try again.');
-      }
-    } finally {
+    if (formData.password !== formData.password_confirmation) {
+      setGeneralError('Passwords do not match');
       setLoading(false);
+      return;
+    }
+
+    const result = await register(formData);
+    setLoading(false);
+
+    if (result.success) {
+      navigate('/login');
+    } else if (result.errors) {
+      setErrors(result.errors);
+      setGeneralError(result.message || 'Please fix the errors below.');
+    } else {
+      setGeneralError(result.message);
     }
   };
 
@@ -90,13 +74,9 @@ export default function Register() {
                 required
                 value={formData.first_name}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${
-                  errors.first_name ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${errors.first_name ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
               />
-              {errors.first_name && (
-                <p className="mt-1 text-xs text-red-600">{errors.first_name[0]}</p>
-              )}
+              {errors.first_name && <p className="mt-1 text-xs text-red-600">{errors.first_name[0]}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
@@ -106,13 +86,9 @@ export default function Register() {
                 required
                 value={formData.last_name}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${
-                  errors.last_name ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${errors.last_name ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
               />
-              {errors.last_name && (
-                <p className="mt-1 text-xs text-red-600">{errors.last_name[0]}</p>
-              )}
+              {errors.last_name && <p className="mt-1 text-xs text-red-600">{errors.last_name[0]}</p>}
             </div>
           </div>
           <div>
@@ -123,13 +99,9 @@ export default function Register() {
               required
               value={formData.email}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${
-                errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
             />
-            {errors.email && (
-              <p className="mt-1 text-xs text-red-600">{errors.email[0]}</p>
-            )}
+            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email[0]}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
@@ -139,13 +111,9 @@ export default function Register() {
               required
               value={formData.password}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${
-                errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
             />
-            {errors.password && (
-              <p className="mt-1 text-xs text-red-600">{errors.password[0]}</p>
-            )}
+            {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password[0]}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
@@ -155,28 +123,25 @@ export default function Register() {
               required
               value={formData.password_confirmation}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${
-                errors.password_confirmation ? 'border-red-300 bg-red-50' : 'border-gray-300'
-              }`}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
-            {errors.password_confirmation && (
-              <p className="mt-1 text-xs text-red-600">{errors.password_confirmation[0]}</p>
-            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Phone (optional)</label>
             <input
               type="tel"
+              name="phone"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Address (optional)</label>
             <textarea
+              name="address"
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               rows={2}
             />
@@ -191,9 +156,7 @@ export default function Register() {
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 Registering...
               </>
-            ) : (
-              'Register'
-            )}
+            ) : 'Register'}
           </button>
         </form>
         <div className="text-center">

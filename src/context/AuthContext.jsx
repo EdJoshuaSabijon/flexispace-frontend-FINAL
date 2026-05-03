@@ -8,9 +8,9 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    if (token && userData) {
+    const token = localStorage.getItem('token');
+    if (userData && token) {
       setUser(JSON.parse(userData));
     }
     setLoading(false);
@@ -20,8 +20,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const endpoint = isAdmin ? '/admin/login' : '/login';
       const response = await api.post(endpoint, { email, password });
-      const token = response.data.access_token || response.data.token;
-      localStorage.setItem('token', token);
+      localStorage.setItem('token', response.data.access_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       setUser(response.data.user);
       return { success: true };
@@ -33,19 +32,18 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await api.post('/register', userData);
-      const token = response.data.access_token || response.data.token;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      setUser(response.data.user);
-      return { success: true };
+      return { success: true, message: response.data.message };
     } catch (error) {
+      if (error.response?.data?.errors) {
+        return { success: false, errors: error.response.data.errors, message: error.response.data.message };
+      }
       return { success: false, message: error.response?.data?.message || 'Registration failed' };
     }
   };
 
   const logout = async () => {
     try {
-      await api.post('/logout');
+      await api.post(user?.role === 'admin' ? '/admin/logout' : '/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

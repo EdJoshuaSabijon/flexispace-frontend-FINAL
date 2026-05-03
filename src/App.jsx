@@ -8,7 +8,7 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import VerifyEmail from './pages/VerifyEmail';
+
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import EditProfile from './pages/EditProfile';
@@ -43,7 +43,7 @@ function ProtectedRoute({ children, requireAdmin = false }) {
 function AppContent() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const hideHeaderPaths = ['/login', '/register', '/verify-email', '/admin/login'];
+  const hideHeaderPaths = ['/login', '/register', '/admin/login'];
   const hideHeader = hideHeaderPaths.includes(location.pathname) || isAdminRoute;
 
   return (
@@ -58,7 +58,7 @@ function AppContent() {
         <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
+
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />

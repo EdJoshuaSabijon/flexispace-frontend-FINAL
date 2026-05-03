@@ -24,10 +24,19 @@ export default function AdminOrders() {
   };
 
   const handleStatusUpdate = async (orderId, newStatus) => {
+    // Optimistic update
+    const previousOrders = [...orders];
+    setOrders(orders.map(order => 
+      order.id === orderId ? { ...order, status: newStatus } : order
+    ));
+
     try {
       await api.patch(`/admin/orders/${orderId}/status`, { status: newStatus });
-      fetchOrders();
+      // We don't necessarily need to fetch again if optimistic update works,
+      // but if we do, maybe it causes a flicker. Let's just keep the optimistic state.
     } catch (error) {
+      // Revert on error
+      setOrders(previousOrders);
       alert('Failed to update order status');
     }
   };
@@ -128,7 +137,7 @@ export default function AdminOrders() {
                     <select
                       value={order.status}
                       onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
-                      className={`text-sm font-medium rounded-lg px-3 py-2 border focus:ring-2 focus:ring-violet-500 outline-none cursor-pointer ${getStatusColor(order.status)}`}
+                      className={`text-sm font-medium rounded-lg px-3 py-2 border focus:ring-2 focus:ring-violet-500 outline-none cursor-pointer transition-all duration-300 ${getStatusColor(order.status)}`}
                     >
                       <option value="Pending" className="bg-white text-gray-900">Pending</option>
                       <option value="Processing" className="bg-white text-gray-900">Processing</option>

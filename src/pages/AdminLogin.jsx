@@ -5,13 +5,16 @@ import { useAuth } from '../context/AuthContext';
 export default function AdminLogin() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     const result = await login(formData.email, formData.password, true);
+    setLoading(false);
     if (result.success) {
       navigate('/admin/dashboard');
     } else {
@@ -56,9 +59,10 @@ export default function AdminLogin() {
           </div>
           <button
             type="submit"
-            className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700"
+            disabled={loading}
+            className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50"
           >
-            Sign in as Admin
+            {loading ? 'Signing in...' : 'Sign in as Admin'}
           </button>
         </form>
         <div className="text-center">
