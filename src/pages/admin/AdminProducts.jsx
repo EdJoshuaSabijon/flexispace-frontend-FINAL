@@ -95,7 +95,7 @@ export default function AdminProducts() {
       category: product.category,
       is_active: product.is_active,
     });
-    setImagePreview(product.image_path ? `http://localhost:8000/storage/${product.image_path}` : null);
+    setImagePreview(product.image_url);
     setImageFile(null);
     setShowModal(true);
   };
@@ -150,16 +150,16 @@ export default function AdminProducts() {
               <tr key={product.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <div className="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden mr-3 flex-shrink-0">
-                      {product.image_path ? (
-                        <img
-                          src={`http://localhost:8000/storage/${product.image_path}`}
-                          alt={product.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center text-gray-400 text-xs">🪑</div>
-                      )}
+                    <div className="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden mr-3 flex-shrink-0 border border-gray-200">
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://via.placeholder.com/150?text=Error';
+                        }}
+                      />
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-slate-900">{product.name}</div>
