@@ -8,6 +8,10 @@ RUN npm ci
 
 COPY . .
 
+# Accept VITE_API_URL as build argument and set as env var for build
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 RUN npm run build
 
 RUN npm install -g serve
