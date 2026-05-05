@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Truck, Shield, CreditCard, ChevronRight, MapPin } from 'lucide-react';
+import { Truck, Shield, CreditCard, ChevronRight, MapPin, Loader2 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import api from '../services/api';
 
-// Fix Leaflet default icon issue
+// Fix Leaflet default icon issue with bundlers (Vite/Webpack)
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -15,10 +15,15 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-function LocationMarker({ position, setPosition }) {
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+function LocationMarker({ position, setPosition, onReverseGeocode }) {
   const map = useMapEvents({
     click(e) {
-      setPosition(e.latlng);
+      const { lat, lng } = e.latlng;
+      setPosition({ lat, lng });
+      // Reverse geocode the clicked coordinates to fill in the address
+      onReverseGeocode(lat, lng);
     },
   });
 
@@ -45,6 +50,7 @@ export default function Checkout() {
   });
   
   const [position, setPosition] = useState(null); // {lat, lng}
+  const [geocoding, setGeocoding] = useState(false);
   const [logisticsProviders, setLogisticsProviders] = useState([]);
   const [gcashSettings, setGcashSettings] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -96,20 +102,43 @@ export default function Checkout() {
     }
   };
 
+  // Forward geocode: address text -> coordinates
   const handleAddressSearch = async () => {
     if (!formData.shipping_address) return;
+    setGeocoding(true);
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.shipping_address)}`);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.shipping_address)}&limit=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
       const data = await res.json();
       if (data && data.length > 0) {
         setPosition({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
       } else {
-        console.warn('Could not find that address on the map. Please pin it manually.');
+        alert('Could not find that address on the map. Please pin your location manually.');
       }
     } catch (err) {
       console.error('Geocoding error:', err);
+    } finally {
+      setGeocoding(false);
     }
   };
+
+  // Reverse geocode: coordinates -> address text (called when user clicks map)
+  const handleReverseGeocode = useCallback(async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      const data = await res.json();
+      if (data && data.display_name) {
+        setFormData(prev => ({ ...prev, shipping_address: data.display_name }));
+      }
+    } catch (err) {
+      console.error('Reverse geocoding error:', err);
+    }
+  }, []);
 
   const formatPrice = (price) => {
     return `₱${Number(price).toLocaleString('en-PH')}`;
@@ -203,20 +232,35 @@ export default function Checkout() {
               )}
             </div>
             <p className="text-sm text-slate-500 mb-4">Click on the map to accurately pinpoint your delivery address. This defaults to your saved profile location.</p>
-            <div className="h-[300px] w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner z-0">
-              {position && (
-                <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
+            {/* z-index fix: use isolate so leaflet tiles don't bleed under other elements */}
+            <div style={{ height: '300px', width: '100%', borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid #e5e7eb', position: 'relative', zIndex: 0 }}>
+              {position ? (
+                <MapContainer
+                  center={position}
+                  zoom={15}
+                  style={{ height: '100%', width: '100%' }}
+                  // Disable scroll-wheel zoom so page can still scroll on mobile
+                  scrollWheelZoom={false}
+                >
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   />
-                  <LocationMarker position={position} setPosition={setPosition} />
+                  <LocationMarker
+                    position={position}
+                    setPosition={setPosition}
+                    onReverseGeocode={handleReverseGeocode}
+                  />
                 </MapContainer>
+              ) : (
+                <div className="h-full w-full flex items-center justify-center bg-slate-50 text-slate-400 text-sm">
+                  <Loader2 className="animate-spin mr-2" size={16} /> Locating you...
+                </div>
               )}
             </div>
             {position && (
               <p className="text-xs text-slate-400 mt-2 text-right">
-                Lat: {position.lat.toFixed(4)}, Lng: {position.lng.toFixed(4)}
+                📍 Lat: {position.lat.toFixed(5)}, Lng: {position.lng.toFixed(5)}
               </p>
             )}
           </div>
@@ -248,10 +292,26 @@ export default function Checkout() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">Complete Address</label>
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  Complete Address
+                  <span className="ml-2 text-xs font-normal text-violet-500">(auto-filled when you pin on map)</span>
+                </label>
                 <div className="flex gap-2">
-                  <textarea required value={formData.shipping_address} onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })} onBlur={handleAddressSearch} className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none" rows={2} placeholder="House/Unit No., Street, Barangay, City, Province" />
-                  <button type="button" onClick={handleAddressSearch} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors self-start whitespace-nowrap border border-slate-200">
+                  <textarea
+                    required
+                    value={formData.shipping_address}
+                    onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })}
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none"
+                    rows={2}
+                    placeholder="House/Unit No., Street, Barangay, City, Province"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddressSearch}
+                    disabled={geocoding}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-60 text-slate-700 font-bold rounded-xl transition-colors self-start whitespace-nowrap border border-slate-200 flex items-center gap-1"
+                  >
+                    {geocoding ? <Loader2 size={14} className="animate-spin" /> : null}
                     Find on Map
                   </button>
                 </div>
@@ -319,7 +379,7 @@ export default function Checkout() {
               <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100 flex flex-col sm:flex-row gap-6 items-center animate-in fade-in slide-in-from-top-4">
                 {gcashSettings.gcash_qr_code && (
                   <div className="w-48 h-48 bg-white p-2 rounded-2xl shadow-sm flex-shrink-0 border border-blue-100">
-                    <img src={`http://localhost:8000/storage/${gcashSettings.gcash_qr_code}`} alt="GCash QR" className="w-full h-full object-contain rounded-xl" />
+                    <img src={`${API_BASE}/storage/${gcashSettings.gcash_qr_code}`} alt="GCash QR" className="w-full h-full object-contain rounded-xl" />
                   </div>
                 )}
                 <div className="text-center sm:text-left flex-1">
@@ -348,7 +408,7 @@ export default function Checkout() {
               {cart.map((item) => (
                 <div key={item.product_id} className="flex gap-4">
                   <div className="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                    <img src={item.image_path ? `http://localhost:8000/storage/${item.image_path}` : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=150&q=80'} alt={item.name} className="w-full h-full object-cover" />
+                    <img src={item.image_path ? `${API_BASE}/storage/${item.image_path}` : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=150&q=80'} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <p className="font-bold text-slate-800 truncate text-sm">{item.name}</p>
