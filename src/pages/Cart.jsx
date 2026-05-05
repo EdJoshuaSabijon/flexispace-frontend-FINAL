@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Trash2, ShoppingBag, Minus, Plus, ArrowLeft, Truck } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { storageUrl } from '../services/api';
+
 
 export default function Cart() {
   const [cart, setCart] = useState([]);
@@ -122,9 +124,7 @@ export default function Cart() {
                 {/* Product Image */}
                 <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
                   <img
-                    src={imagePath 
-                      ? `http://localhost:8000/storage/${imagePath}`
-                      : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&q=80'}
+                    src={storageUrl(imagePath) || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&q=80'}
                     alt={name}
                     className="w-full h-full object-cover"
                     onError={(e) => {

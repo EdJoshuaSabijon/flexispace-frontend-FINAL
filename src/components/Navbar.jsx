@@ -94,7 +94,9 @@ export default function Navbar() {
               <>
                 <Link to="/" className="block py-2 text-gray-700">Home</Link>
                 <Link to="/products" className="block py-2 text-gray-700">Products</Link>
-                <Link to="/cart" className="block py-2 text-gray-700">Cart ({cartCount})</Link>
+                <Link to="/cart" className="block py-2 text-gray-700">
+                  Cart {cartCount > 0 && `(${cartCount})`}
+                </Link>
               </>
             )}
             {user ? (

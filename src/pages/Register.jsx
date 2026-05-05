@@ -41,7 +41,7 @@ export default function Register() {
     setLoading(false);
 
     if (result.success) {
-      navigate('/login');
+      navigate('/dashboard');
     } else if (result.errors) {
       setErrors(result.errors);
       setGeneralError(result.message || 'Please fix the errors below.');

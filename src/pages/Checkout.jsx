@@ -377,9 +377,9 @@ export default function Checkout() {
 
             {formData.payment_method === 'gcash' && gcashSettings && (
               <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100 flex flex-col sm:flex-row gap-6 items-center animate-in fade-in slide-in-from-top-4">
-                {gcashSettings.gcash_qr_code && (
+                {gcashSettings.gcash_qr_code_url && (
                   <div className="w-48 h-48 bg-white p-2 rounded-2xl shadow-sm flex-shrink-0 border border-blue-100">
-                    <img src={`${API_BASE}/storage/${gcashSettings.gcash_qr_code}`} alt="GCash QR" className="w-full h-full object-contain rounded-xl" />
+                    <img src={gcashSettings.gcash_qr_code_url} alt="GCash QR" className="w-full h-full object-contain rounded-xl" />
                   </div>
                 )}
                 <div className="text-center sm:text-left flex-1">
@@ -408,7 +408,7 @@ export default function Checkout() {
               {cart.map((item) => (
                 <div key={item.product_id} className="flex gap-4">
                   <div className="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                    <img src={item.image_path ? `${API_BASE}/storage/${item.image_path}` : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=150&q=80'} alt={item.name} className="w-full h-full object-cover" />
+                    <img src={item.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=150&q=80'} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <p className="font-bold text-slate-800 truncate text-sm">{item.name}</p>

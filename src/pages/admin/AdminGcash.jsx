@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 import api from '../../services/api';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function AdminGcash() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -86,10 +88,10 @@ export default function AdminGcash() {
               <div>
                 <label className="block text-sm font-medium mb-2 text-slate-700">Upload QR Code</label>
                 <input type="file" accept="image/*" onChange={handleFileChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 bg-gray-50" />
-                {settings?.gcash_qr_code && !qrCodeFile && (
+                {settings?.gcash_qr_code_url && !qrCodeFile && (
                   <div className="mt-4">
                     <p className="text-sm text-gray-500 mb-2">Current QR Code:</p>
-                    <img src={`http://localhost:8000/storage/${settings.gcash_qr_code}`} alt="GCash QR" className="w-48 h-48 object-cover rounded-xl border border-gray-200 shadow-sm" />
+                    <img src={settings.gcash_qr_code_url} alt="GCash QR" className="w-48 h-48 object-contain rounded-xl border border-gray-200 shadow-sm" />
                   </div>
                 )}
                 {qrCodeFile && (
