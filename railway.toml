@@ -1,6 +1,7 @@
 [build]
-builder = "NIXPACKS"
-buildCommand = "npm run build"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "npm run preview -- --port $PORT --host 0.0.0.0"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
