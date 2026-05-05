@@ -75,7 +75,7 @@ export default function ProductDetail() {
           <div className="aspect-square bg-gray-100 rounded-2xl overflow-hidden">
             <img
               src={product.image_path
-                ? `http://localhost:8000/storage/${product.image_path}`
+                product.image_path?.startsWith('http') ? product.image_path : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/storage/${product.image_path}`
                 : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80'}
               alt={product.name}
               className="w-full h-full object-cover"

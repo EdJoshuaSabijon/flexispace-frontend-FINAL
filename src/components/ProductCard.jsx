@@ -45,7 +45,7 @@ export default function ProductCard({ product, onAddToCart }) {
   }, []);
 
   const imageUrl = product.image_path
-    ? `http://localhost:8000/storage/${product.image_path}`
+    ? (product.image_path?.startsWith('http') ? product.image_path : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/storage/${product.image_path}`)
     : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80';
 
   const showPreview = isHovered || isMobileOpen;
